@@ -14,41 +14,26 @@ export function EnhancedProgress({ current, total, startTime, label = 'Progress'
   const [eta, setEta] = useState<number | null>(null);
   const [speed, setSpeed] = useState<number | null>(null);
 
-  // Start elapsed time immediately when startTime is set
   useEffect(() => {
-    if (!startTime) return;
+    if (!startTime || current === 0) return;
 
-    // Update immediately
-    const updateElapsed = () => {
+    const interval = setInterval(() => {
       const now = new Date();
       const elapsedMs = now.getTime() - startTime.getTime();
-      const elapsedSec = Math.max(0, Math.floor(elapsedMs / 1000));
+      const elapsedSec = Math.floor(elapsedMs / 1000);
       setElapsed(elapsedSec);
 
-      // Calculate speed and ETA only if we have progress
-      if (current > 0 && elapsedSec > 0) {
-        const structuresPerSec = current / elapsedSec;
-        setSpeed(structuresPerSec);
+      // Calculate speed (structures per second)
+      const structuresPerSec = current / elapsedSec;
+      setSpeed(structuresPerSec);
 
-        // Calculate ETA
-        if (structuresPerSec > 0 && total > current) {
-          const remaining = total - current;
-          const etaSec = Math.ceil(remaining / structuresPerSec);
-          setEta(etaSec);
-        } else {
-          setEta(null);
-        }
-      } else {
-        setSpeed(null);
-        setEta(null);
+      // Calculate ETA
+      if (structuresPerSec > 0) {
+        const remaining = total - current;
+        const etaSec = Math.ceil(remaining / structuresPerSec);
+        setEta(etaSec);
       }
-    };
-
-    // Update immediately
-    updateElapsed();
-
-    // Then update every second
-    const interval = setInterval(updateElapsed, 1000);
+    }, 1000);
 
     return () => clearInterval(interval);
   }, [current, total, startTime]);
@@ -109,17 +94,6 @@ export function EnhancedProgress({ current, total, startTime, label = 'Progress'
             <div>
               <p className="text-xs text-muted-foreground">Elapsed</p>
               <p className="text-sm font-bold font-mono">{formatElapsed(elapsed)}</p>
-            </div>
-          </div>
-        )}
-
-        {/* Placeholder for when elapsed time isn't showing yet */}
-        {!startTime && (
-          <div className="flex items-center gap-2 p-2 bg-card/50 rounded-lg border border-border/50 opacity-50">
-            <Clock className="w-4 h-4 text-muted-foreground" />
-            <div>
-              <p className="text-xs text-muted-foreground">Elapsed</p>
-              <p className="text-sm font-bold font-mono">0:00</p>
             </div>
           </div>
         )}

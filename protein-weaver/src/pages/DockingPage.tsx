@@ -423,15 +423,12 @@ export default function Index() {
           setTotalStructures(data.total);
         },
         onProgress: (data) => {
-          console.log('Progress update received:', data); // Debug log
           setCurrentStructure(data.current);
           setDockingState((prev) => ({
             ...prev,
             progress: data.percent,
           }));
-          if (data.current > 0) {
-            addDockingLog(`⏳ Structure ${data.current}/${data.total} (${data.percent}%)`);
-          }
+          addDockingLog(`⏳ Structure ${data.current}/${data.total} (${data.percent}%)`);
         },
         onScore: (data) => {
           setLiveScores((prev) => [...prev, data]);

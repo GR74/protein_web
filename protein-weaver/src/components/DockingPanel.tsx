@@ -7,8 +7,6 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { SortableTable } from '@/components/SortableTable';
 import { EnhancedProgress } from '@/components/EnhancedProgress';
 import { TableSkeleton, ResultsSkeleton } from '@/components/SkeletonLoader';
-import { DockingScoreChart } from '@/components/DockingScoreChart';
-import { EmptyDockingResults } from '@/components/EmptyState';
 import { useToast } from '@/hooks/use-toast';
 import type { DockingState } from '@/types/docking';
 
@@ -262,11 +260,6 @@ export function DockingPanel({
             </div>
           </div>
 
-          {/* Score Charts */}
-          {isComplete && dockingState.allModels && dockingState.allModels.length > 0 && (
-            <DockingScoreChart models={dockingState.allModels} />
-          )}
-
           {/* Enhanced Results Table */}
           {isComplete && dockingState.allModels && dockingState.allModels.length > 0 ? (
             <div className="panel-card animate-fade-in">
@@ -291,8 +284,6 @@ export function DockingPanel({
             </div>
           ) : isComplete && !dockingState.allModels ? (
             <ResultsSkeleton />
-          ) : isComplete && dockingState.allModels?.length === 0 ? (
-            <EmptyDockingResults />
           ) : null}
         </>
       )}
