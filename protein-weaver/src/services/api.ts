@@ -191,18 +191,23 @@ export async function dockWithProgress(
             
             switch (data.type) {
               case 'start':
+                console.log('SSE: start event', data);
                 callbacks.onStart?.(data);
                 break;
               case 'progress':
+                console.log('SSE: progress event', data);
                 callbacks.onProgress?.(data);
                 break;
               case 'score':
+                console.log('SSE: score event', data);
                 callbacks.onScore?.(data);
                 break;
               case 'complete':
+                console.log('SSE: complete event', data);
                 callbacks.onComplete?.(data);
                 break;
               case 'error':
+                console.error('SSE: error event', data);
                 callbacks.onError?.(data.message);
                 break;
             }

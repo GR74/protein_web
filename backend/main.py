@@ -201,6 +201,9 @@ async def api_dock_stream(project: str = Form(...), nstruct: int = Form(10)):
         # Send start event
         yield f"data: {json.dumps({'type': 'start', 'total': nstruct, 'message': 'Starting Rosetta docking...'})}\n\n"
         
+        # Send initial progress (0%)
+        yield f"data: {json.dumps({'type': 'progress', 'current': 0, 'total': nstruct, 'percent': 0})}\n\n"
+        
         # Start process
         process = subprocess.Popen(
             cmd,
@@ -216,33 +219,76 @@ async def api_dock_stream(project: str = Form(...), nstruct: int = Form(10)):
         
         structures_done = 0
         scores = []
+        last_progress_sent = -1
+        fasc_path = project_dir / "docking.fasc"
+        
+        def check_fasc_file():
+            """Helper to check .fasc file and return count of completed structures"""
+            if not fasc_path.exists():
+                return 0
+            try:
+                fasc_content = fasc_path.read_text()
+                score_lines = [
+                    l for l in fasc_content.splitlines()
+                    if l.startswith("SCORE:")
+                    and "total_score" not in l
+                    and "description" not in l
+                    and len(l.split()) >= 2
+                ]
+                return len(score_lines)
+            except Exception:
+                return 0
+        
+        def should_send_progress(current_count: int) -> bool:
+            """Check if progress should be sent"""
+            nonlocal last_progress_sent
+            if current_count != last_progress_sent and current_count >= 0:
+                last_progress_sent = current_count
+                return True
+            return False
         
         try:
             # Stream output line by line
             with open(log_path, "w") as log_file:
+                line_count = 0
+                
                 for line in iter(process.stdout.readline, ''):
                     if not line:
                         break
-                        
+                    
+                    line_count += 1
                     log_file.write(line)
                     log_file.flush()
                     
+                    # Check fasc file VERY frequently (every 3 lines) for progress - MOST RELIABLE METHOD
+                    if line_count % 3 == 0:
+                        fasc_count = check_fasc_file()
+                        if fasc_count > structures_done:
+                            structures_done = fasc_count
+                            if should_send_progress(structures_done):
+                                percent = min(100, int((structures_done / nstruct) * 100))
+                                yield f"data: {json.dumps({'type': 'progress', 'current': structures_done, 'total': nstruct, 'percent': percent})}\n\n"
+                    
                     # Parse progress - Rosetta prints structure completion
                     # Look for "protocols.jd2.JobDistributor" lines
-                    if "protocols.jd2.JobDistributor" in line:
+                    if "protocols.jd2.JobDistributor" in line or "JobDistributor" in line:
+                        # Try multiple patterns
                         match = re.search(r"starting\s+(\d+)", line, re.IGNORECASE)
+                        if not match:
+                            match = re.search(r"(\d+)\s+of", line, re.IGNORECASE)
+                        if not match:
+                            match = re.search(r"job\s+(\d+)", line, re.IGNORECASE)
+                        
                         if match:
                             current = int(match.group(1))
-                            percent = int((current / nstruct) * 100)
-                            yield f"data: {json.dumps({'type': 'progress', 'current': current, 'total': nstruct, 'percent': percent})}\n\n"
+                            structures_done = max(structures_done, current)
+                            if should_send_progress(structures_done):
+                                percent = min(100, int((structures_done / nstruct) * 100))
+                                yield f"data: {json.dumps({'type': 'progress', 'current': structures_done, 'total': nstruct, 'percent': percent})}\n\n"
                     
-                    # Parse completion messages
-                    if "job" in line.lower() and "completed" in line.lower():
-                        structures_done += 1
-                        percent = int((structures_done / nstruct) * 100)
-                        yield f"data: {json.dumps({'type': 'progress', 'current': structures_done, 'total': nstruct, 'percent': percent})}\n\n"
+                    # Parse completion messages - multiple patterns (removed to avoid false positives)
                     
-                    # Check for SCORE lines (real scores, not headers)
+                    # Check for SCORE lines (real scores, not headers) - this indicates progress!
                     if line.startswith("SCORE:") and "total_score" not in line and "description" not in line:
                         parts = line.split()
                         if len(parts) >= 2:
@@ -250,6 +296,13 @@ async def api_dock_stream(project: str = Form(...), nstruct: int = Form(10)):
                                 score = float(parts[1])
                                 desc = parts[-1] if len(parts) > 2 else "unknown"
                                 scores.append({"score": score, "desc": desc})
+                                
+                                # Each SCORE line means a structure completed - update progress immediately!
+                                structures_done = len(scores)
+                                if should_send_progress(structures_done):
+                                    percent = min(100, int((structures_done / nstruct) * 100))
+                                    yield f"data: {json.dumps({'type': 'progress', 'current': structures_done, 'total': nstruct, 'percent': percent})}\n\n"
+                                
                                 yield f"data: {json.dumps({'type': 'score', 'score': score, 'desc': desc, 'line': line.strip()})}\n\n"
                             except ValueError:
                                 pass
