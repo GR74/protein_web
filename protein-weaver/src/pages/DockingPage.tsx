@@ -63,6 +63,7 @@ export default function Index() {
   const [liveScores, setLiveScores] = useState<DockingScore[]>([]);
   const [currentStructure, setCurrentStructure] = useState(0);
   const [totalStructures, setTotalStructures] = useState(0);
+  const [dockingStartTime, setDockingStartTime] = useState<Date | undefined>();
 
   // Reset everything for a new project
   const handleNewProject = useCallback(() => {
@@ -402,6 +403,8 @@ export default function Index() {
 
   const handleRunDocking = useCallback(async () => {
     // Reset state for new run
+    const startTime = new Date();
+    setDockingStartTime(startTime);
     setDockingState({
       status: 'running',
       progress: 0,
@@ -649,6 +652,7 @@ export default function Index() {
               liveScores={liveScores}
               currentStructure={currentStructure}
               totalStructures={totalStructures}
+              dockingStartTime={dockingStartTime}
             />
           </div>
         </div>

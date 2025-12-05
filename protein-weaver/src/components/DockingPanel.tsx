@@ -4,7 +4,10 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Progress } from '@/components/ui/progress';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { SortableTable } from '@/components/SortableTable';
+import { EnhancedProgress } from '@/components/EnhancedProgress';
+import { TableSkeleton, ResultsSkeleton } from '@/components/SkeletonLoader';
+import { useToast } from '@/hooks/use-toast';
 import type { DockingState } from '@/types/docking';
 
 interface DockingPanelProps {
@@ -19,6 +22,7 @@ interface DockingPanelProps {
   liveScores?: Array<{ score: number; desc: string }>;
   currentStructure?: number;
   totalStructures?: number;
+  dockingStartTime?: Date;
 }
 
 export function DockingPanel({
@@ -33,7 +37,9 @@ export function DockingPanel({
   liveScores = [],
   currentStructure = 0,
   totalStructures = 0,
+  dockingStartTime,
 }: DockingPanelProps) {
+  const { toast } = useToast();
   const [showOptions, setShowOptions] = useState(false);
   const [showXml, setShowXml] = useState(false);
   const logContainerRef = useRef<HTMLDivElement>(null);
@@ -135,35 +141,19 @@ export function DockingPanel({
             )}
           </Button>
 
-          {/* Progress */}
+          {/* Enhanced Progress */}
           {isRunning && (
-            <div className="space-y-4 p-4 bg-primary/5 rounded-xl border border-primary/20">
-              <div className="flex justify-between items-center">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-primary animate-pulse" />
-                  <span className="font-medium text-foreground">Docking in progress</span>
-                </div>
-                <span className="font-bold text-primary text-lg" style={{ fontFamily: 'Oswald, sans-serif' }}>
-                  {dockingState.progress}%
-                </span>
-              </div>
-              
-              <Progress value={dockingState.progress} className="h-4" />
-              
-              {totalStructures > 0 && (
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">
-                    Structure <span className="font-mono font-bold text-foreground">{currentStructure}</span> of <span className="font-mono font-bold text-foreground">{totalStructures}</span>
-                  </span>
-                  <span className="text-muted-foreground">
-                    ~{Math.ceil((totalStructures - currentStructure) * 0.5)} min remaining
-                  </span>
-                </div>
-              )}
+            <div className="space-y-4">
+              <EnhancedProgress
+                current={currentStructure}
+                total={totalStructures}
+                startTime={dockingStartTime}
+                label="Docking in progress"
+              />
 
               {/* Live Scores */}
               {liveScores.length > 0 && (
-                <div className="mt-3 p-3 bg-card rounded-lg border">
+                <div className="p-3 bg-card rounded-lg border border-primary/20">
                   <div className="flex items-center gap-2 mb-2">
                     <Zap className="w-4 h-4 text-warning" />
                     <span className="text-xs font-semibold uppercase tracking-wider">Live Scores</span>
@@ -270,82 +260,31 @@ export function DockingPanel({
             </div>
           </div>
 
-          {/* All Results Table */}
-          {dockingState.allModels && dockingState.allModels.length > 0 && (
+          {/* Enhanced Results Table */}
+          {isComplete && dockingState.allModels && dockingState.allModels.length > 0 ? (
             <div className="panel-card animate-fade-in">
-              <div className="panel-header bg-gradient-to-r from-primary/5 to-primary/10">
+              <div className="panel-header bg-gradient-to-r from-primary/10 to-primary/5">
                 <div className="flex items-center gap-2">
-                  <div className="p-1.5 rounded-lg bg-primary/10 text-primary">
+                  <div className="p-1.5 rounded-lg bg-primary/20 text-primary shadow-layered">
                     <Table2 className="w-4 h-4" />
                   </div>
                   <span className="font-bold">All Docking Results</span>
                 </div>
-                <span className="text-xs text-muted-foreground ml-auto bg-muted/50 px-2.5 py-1 rounded-full border border-border/50">
+                <span className="text-xs text-muted-foreground ml-auto bg-primary/10 px-2.5 py-1 rounded-full border border-primary/20 font-semibold">
                   {dockingState.allModels.length} models
                 </span>
               </div>
-              <div className="p-4">
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="bg-gradient-to-r from-primary/5 to-transparent border-b-2 border-primary/20">
-                        <TableHead className="w-16 font-bold">Rank</TableHead>
-                        <TableHead className="font-mono font-bold">Model</TableHead>
-                        <TableHead className="text-right font-mono font-bold">Total Score</TableHead>
-                        <TableHead className="text-right font-mono font-bold">RMS</TableHead>
-                        <TableHead className="text-right font-mono font-bold">CAPRI Rank</TableHead>
-                        <TableHead className="text-right font-mono font-bold">Fnat</TableHead>
-                        <TableHead className="text-right font-mono font-bold">I_sc</TableHead>
-                        <TableHead className="text-right font-mono font-bold">Irms</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {dockingState.allModels
-                        .sort((a, b) => a.score - b.score)
-                        .map((model, idx) => {
-                          const isBest = model.desc === dockingState.bestModel;
-                          return (
-                            <TableRow 
-                              key={model.index ?? idx}
-                              className={`
-                                transition-smooth hover:bg-primary/5
-                                ${isBest ? "bg-gradient-to-r from-success/15 via-success/10 to-transparent border-l-4 border-l-success shadow-glow-success" : ""}
-                              `}
-                            >
-                              <TableCell className="font-bold">{idx + 1}</TableCell>
-                              <TableCell className="font-mono text-xs font-medium">
-                                {model.desc}
-                              </TableCell>
-                              <TableCell className={`text-right font-mono font-extrabold ${isBest ? 'text-gradient-success' : 'text-foreground'}`}>
-                                {model.score.toFixed(2)}
-                              </TableCell>
-                              <TableCell className="text-right font-mono text-xs">
-                                {model.rms?.toFixed(2) ?? '-'}
-                              </TableCell>
-                              <TableCell className="text-right font-mono text-xs">
-                                {model.CAPRI_rank?.toFixed(0) ?? '-'}
-                              </TableCell>
-                              <TableCell className="text-right font-mono text-xs">
-                                {model.Fnat?.toFixed(3) ?? '-'}
-                              </TableCell>
-                              <TableCell className="text-right font-mono text-xs">
-                                {model.I_sc?.toFixed(2) ?? '-'}
-                              </TableCell>
-                              <TableCell className="text-right font-mono text-xs">
-                                {model.Irms?.toFixed(2) ?? '-'}
-                              </TableCell>
-                            </TableRow>
-                          );
-                        })}
-                    </TableBody>
-                  </Table>
-                </div>
-                <p className="text-xs text-muted-foreground mt-4 text-center bg-muted/30 px-3 py-2 rounded-lg border border-border/50">
-                  Models sorted by total score (lower is better). Best model highlighted.
-                </p>
+              <div className="p-6">
+                <SortableTable
+                  models={dockingState.allModels}
+                  bestModelDesc={dockingState.bestModel}
+                  onExport={() => toast({ title: 'Exported!', description: 'Results saved to CSV file' })}
+                />
               </div>
             </div>
-          )}
+          ) : isComplete && !dockingState.allModels ? (
+            <ResultsSkeleton />
+          ) : null}
         </>
       )}
     </div>
