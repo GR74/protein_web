@@ -570,6 +570,57 @@
   }
 }
 
+@keyframes bounce-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.3) translateY(-20px);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+  70% {
+    transform: scale(0.9);
+  }
+  100% {
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes rotate-in {
+  from {
+    opacity: 0;
+    transform: rotate(-10deg) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: rotate(0) scale(1);
+  }
+}
+
+@keyframes wiggle {
+  0%, 100% {
+    transform: rotate(0deg);
+  }
+  25% {
+    transform: rotate(-3deg);
+  }
+  75% {
+    transform: rotate(3deg);
+  }
+}
+
 .animate-fade-in {
   animation: fade-in 0.5s ease-out;
 }
@@ -580,6 +631,26 @@
 
 .animate-scale-in {
   animation: scale-in 0.3s ease-out;
+}
+
+.animate-bounce-in {
+  animation: bounce-in 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+.animate-slide-up {
+  animation: slide-up 0.4s ease-out;
+}
+
+.animate-rotate-in {
+  animation: rotate-in 0.5s ease-out;
+}
+
+.animate-wiggle {
+  animation: wiggle 0.5s ease-in-out;
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
 }
 
 /* Custom scrollbar for the whole app */
@@ -607,4 +678,114 @@
 ::selection {
   background: hsl(var(--primary) / 0.3);
   color: hsl(var(--foreground));
+}
+
+/* Mobile Responsive Utilities */
+@media (max-width: 768px) {
+  .panel-card {
+    @apply rounded-lg;
+  }
+  
+  .panel-header {
+    @apply px-3 py-2 text-xs;
+  }
+  
+  h1 {
+    @apply text-2xl;
+  }
+  
+  h2 {
+    @apply text-xl;
+  }
+  
+  /* Touch-friendly buttons */
+  button, a {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Improved mobile spacing */
+  .space-y-4 > * + * {
+    margin-top: 1rem;
+  }
+  
+  /* Mobile grid adjustments */
+  .grid {
+    gap: 1rem;
+  }
+}
+
+/* Touch Interactions */
+@media (hover: none) and (pointer: coarse) {
+  .hover-lift:active {
+    transform: translateY(-2px);
+  }
+  
+  .hover-scale:active {
+    transform: scale(1.05);
+  }
+  
+  /* Better touch targets */
+  button, a, input, select, textarea {
+    -webkit-tap-highlight-color: hsl(var(--primary) / 0.2);
+  }
+}
+
+/* Enhanced Toast Styling */
+.group.toaster {
+  z-index: 9999;
+}
+
+.group.toast {
+  @apply glass-strong border-2 shadow-layered;
+  animation: slide-in-right 0.3s ease-out;
+}
+
+.group.toast[data-type="success"] {
+  @apply border-success/40 bg-success/10;
+}
+
+.group.toast[data-type="error"] {
+  @apply border-destructive/40 bg-destructive/10;
+}
+
+.group.toast[data-type="info"] {
+  @apply border-primary/40 bg-primary/10;
+}
+
+.group.toast[data-type="warning"] {
+  @apply border-warning/40 bg-warning/10;
+}
+
+/* Sonner Toast Enhancements */
+[data-sonner-toast] {
+  @apply glass-strong border-2 shadow-layered;
+  font-family: 'Source Sans 3', sans-serif;
+}
+
+[data-sonner-toast][data-type="success"] {
+  @apply border-success/40 bg-success/10;
+}
+
+[data-sonner-toast][data-type="error"] {
+  @apply border-destructive/40 bg-destructive/10;
+}
+
+[data-sonner-toast][data-type="info"] {
+  @apply border-primary/40 bg-primary/10;
+}
+
+[data-sonner-toast][data-type="warning"] {
+  @apply border-warning/40 bg-warning/10;
+}
+
+/* Reduced motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
