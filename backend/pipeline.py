@@ -215,7 +215,10 @@ def visualize_best_model(
 ) -> None:
     """
     Generate a PyMOL script + TIFF for the best docking model and launch PyMOL.
+    Automatically detects Mac vs Linux and uses appropriate PyMOL command.
     """
+    import platform
+    
     best = parse_fasc_and_find_best(fasc_path=fasc_path, pdb_glob=pdb_glob)
     best_pdb: Path = best["pdb_path"]
 
@@ -268,7 +271,32 @@ png {img_path}, dpi=300
     print("=====================================")
     print("Launching PyMOL…")
 
-    subprocess.run(["pymol", str(pml_path)], check=False)
+    # Detect OS and use appropriate PyMOL command
+    system = platform.system()
+    
+    if system == "Darwin":  # macOS
+        # Try multiple Mac PyMOL locations
+        pymol_commands = [
+            ["pymol", "-c", str(pml_path)],  # Homebrew/system install
+            ["/Applications/PyMOL.app/Contents/MacOS/PyMOL", "-c", str(pml_path)],  # App bundle
+            ["/Applications/PyMOLX11Hybrid.app/Contents/MacOS/PyMOL", "-c", str(pml_path)],  # Alternative bundle
+        ]
+        
+        # Try each command until one works
+        for cmd in pymol_commands:
+            try:
+                result = subprocess.run(cmd, check=False, timeout=5, capture_output=True)
+                if result.returncode == 0 or result.returncode == None:
+                    print(f"✅ PyMOL launched successfully with: {' '.join(cmd)}")
+                    return
+            except (FileNotFoundError, subprocess.TimeoutExpired):
+                continue
+        
+        print(f"⚠️  Warning: PyMOL not found. Please install PyMOL or update the path in pipeline.py")
+        print(f"   Tried commands: {[c[0] for c in pymol_commands]}")
+    else:  # Linux or other
+        # Standard Linux command
+        subprocess.run(["pymol", str(pml_path)], check=False)
 
 
 # ============================================================
@@ -798,4 +826,29 @@ zoom animate=-1
     )
 
     print(f"🎨 Opening best-scoring model in PyMOL → {best_pdb}")
-    subprocess.run(["pymol", str(pml_path)], check=False)
+    
+    # Detect OS and use appropriate PyMOL command
+    import platform
+    system = platform.system()
+    
+    if system == "Darwin":  # macOS
+        # Try multiple Mac PyMOL locations
+        pymol_commands = [
+            ["pymol", "-c", str(pml_path)],  # Homebrew/system install
+            ["/Applications/PyMOL.app/Contents/MacOS/PyMOL", "-c", str(pml_path)],  # App bundle
+            ["/Applications/PyMOLX11Hybrid.app/Contents/MacOS/PyMOL", "-c", str(pml_path)],  # Alternative bundle
+        ]
+        
+        # Try each command until one works
+        for cmd in pymol_commands:
+            try:
+                result = subprocess.run(cmd, check=False, timeout=5, capture_output=True)
+                if result.returncode == 0 or result.returncode == None:
+                    print(f"✅ PyMOL launched successfully")
+                    return
+            except (FileNotFoundError, subprocess.TimeoutExpired):
+                continue
+        
+        print(f"⚠️  Warning: PyMOL not found. Please install PyMOL or update the path.")
+    else:  # Linux or other
+        subprocess.run(["pymol", str(pml_path)], check=False)

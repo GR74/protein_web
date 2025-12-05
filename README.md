@@ -2,7 +2,10 @@
 
 A web-based interface for protein-protein docking using Rosetta, featuring structure input, preprocessing, docking, and visualization capabilities.
 
-> **📱 Mac Users**: See [MAC_SETUP.md](MAC_SETUP.md) for detailed Mac-specific setup instructions.
+> **📱 Mac Users**: 
+> - See [MAC_SETUP.md](MAC_SETUP.md) for detailed Mac-specific setup instructions.
+> - Having issues? Check [MAC_QUICK_FIX.md](MAC_QUICK_FIX.md) for common fixes.
+> - More troubleshooting? See [MAC_TROUBLESHOOTING.md](MAC_TROUBLESHOOTING.md).
 
 ## Overview
 
